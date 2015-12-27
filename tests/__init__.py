@@ -9,12 +9,14 @@ from six.moves import cPickle
 from six.moves import xrange
 from nose.tools import assert_raises, assert_equal
 from unittest import SkipTest
+import gzip
 
 from picklable_itertools import (
     repeat, chain, compress, count, cycle, ifilter, ifilterfalse, imap, izip,
-    file_iterator, ordered_sequence_iterator, izip_longest, iter_, islice,
-    range_iterator, product, tee, accumulate, takewhile, dropwhile, starmap,
-    groupby, permutations, combinations, combinations_with_replacement,
+    file_iterator, gfile_iterator, ordered_sequence_iterator, izip_longest,
+    iter_, islice, range_iterator, product, tee, accumulate, takewhile,
+    dropwhile, starmap, groupby, permutations, combinations,
+    combinations_with_replacement,
     xrange as _xrange
 )
 from picklable_itertools.iter_dispatch import numpy, NUMPY_AVAILABLE
@@ -163,14 +165,36 @@ def _create_test_file():
     return f
 
 
+def _create_test_gfile(file_name):
+    f = gzip.open(file_name, 'w')
+    f.write(b"\n".join(str(i).encode() for i in range(4)))
+    f.flush()
+    f.close()
+    return f
+
+
 def test_file_iterator():
     f = _create_test_file()
     assert list(file_iterator(open(f.name))) == list(iter(open(f.name)))
+
+    # keep temp file object to avoid deletion of temp file
+    tmp = f
+    f = _create_test_gfile(tmp.name)
+    assert list(gfile_iterator(gzip.open(f.name))) == list(iter(gzip.open(f.name)))
 
 
 def test_file_iterator_pickling():
     f = _create_test_file()
     it = iter_(open(f.name))
+    last = [next(it) for _ in range(2)][-1]
+    first = next(cPickle.loads(cPickle.dumps(it)))
+    assert int(first) == int(last) + 1
+
+    # keep temp file object to avoid deletion of temp file
+    tmp = f
+    f = _create_test_gfile(tmp.name)
+    it = iter_(gzip.open(f.name))
+    cPickle.dumps(it)
     last = [next(it) for _ in range(2)][-1]
     first = next(cPickle.loads(cPickle.dumps(it)))
     assert int(first) == int(last) + 1

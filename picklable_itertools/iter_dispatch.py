@@ -1,4 +1,5 @@
 import io
+import gzip
 
 import six
 try:
@@ -27,6 +28,8 @@ def iter_(obj):
 
     if isinstance(obj, dict):
         return ordered_sequence_iterator(list(obj.keys()))
+    if isinstance(obj, gzip.GzipFile):
+        return gfile_iterator(obj)
     if isinstance(obj, file_types):
         return file_iterator(obj)
     if six.PY2:
@@ -75,6 +78,17 @@ class file_iterator(BaseItertool):
     def __setstate__(self, state):
         name, pos, mode = state
         self._f = open(name, mode=mode)
+        self._f.seek(pos)
+
+
+class gfile_iterator(file_iterator):
+    def __getstate__(self):
+        name, pos, mode = self._f.name, self._f.tell(), self._f.myfileobj.mode
+        return name, pos, mode
+
+    def __setstate__(self, state):
+        name, pos, mode = state
+        self._f = gzip.open(name, mode=mode)
         self._f.seek(pos)
 
 
