@@ -6,7 +6,7 @@ from .filter import ifilter, ifilterfalse, takewhile, dropwhile
 from .grouping import groupby
 from .iter_dispatch import (
     iter_, ordered_sequence_iterator, file_iterator,
-    gfile_iterator, range_iterator
+    gfile_iterator, range_iterator, codecs_iterator
 )
 from .map_zip import imap, starmap, izip, izip_longest
 from .permutations import (

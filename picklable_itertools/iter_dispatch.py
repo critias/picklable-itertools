@@ -1,6 +1,5 @@
 import io
 import gzip
-
 import six
 try:
     import numpy
@@ -82,6 +81,7 @@ class file_iterator(BaseItertool):
 
 
 class gfile_iterator(file_iterator):
+    """A picklable gzip file iterator."""
     def __getstate__(self):
         name, pos, mode = self._f.name, self._f.tell(), self._f.myfileobj.mode
         return name, pos, mode
@@ -90,6 +90,39 @@ class gfile_iterator(file_iterator):
         name, pos, mode = state
         self._f = gzip.open(name, mode=mode)
         self._f.seek(pos)
+
+
+class codecs_iterator(BaseItertool):
+    """A picklable codecs stream iterator."""
+    def __init__(self, f, stream):
+        # only file objects are supported so far
+        # check if f is really a file object
+        assert isinstance(f, (gzip.GzipFile, file if six.PY2 else io.IOBase))
+        self._file_iterator = iter_(f)
+        assert isinstance(self._file_iterator, (file_iterator, gfile_iterator))
+        self._stream_generator = stream
+        self._stream = self._stream_generator(self._file_iterator._f)
+
+    def __next__(self):
+        line = self._stream.readline()
+        print(line)
+        if not line:
+            raise StopIteration
+        return line
+
+    def __getstate__(self):
+        return self._file_iterator, self._stream_generator,\
+               self._stream.bytebuffer, self._stream.charbuffer,\
+               self._stream.linebuffer, self._stream.errors
+
+    def __setstate__(self, state):
+        self._file_iterator, self._stream_generator,\
+        bytebuffer, charbuffer, linebuffer, errors = state
+        self._stream = self._stream_generator(self._file_iterator._f)
+        self._stream.bytebuffer = bytebuffer
+        self._stream.charbuffer = charbuffer
+        self._stream.linebuffer = linebuffer
+        self._stream.errors = errors
 
 
 class ordered_sequence_iterator(BaseItertool):
