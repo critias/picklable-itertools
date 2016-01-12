@@ -105,7 +105,6 @@ class codecs_iterator(BaseItertool):
 
     def __next__(self):
         line = self._stream.readline()
-        print(line)
         if not line:
             raise StopIteration
         return line
